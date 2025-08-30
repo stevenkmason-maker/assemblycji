@@ -195,6 +195,19 @@
     <footer class="text-xs text-gray-500">
       Built for quick, temporary use. No login; entries are public by nickname.
     </footer>
+    <!-- Massive SIN overlay -->
+<div id="sinOverlay" class="hidden fixed inset-0 z-50 bg-red-900/90 text-white">
+  <div class="h-full w-full flex items-center justify-center p-6">
+    <div class="max-w-xl text-center space-y-4 animate-pulse">
+      <div class="text-5xl md:text-6xl font-extrabold tracking-wide">GAMBLING IS A SIN</div>
+      <p class="text-lg md:text-xl opacity-90">Nice try, “Pastor Nic.” Your entry was not recorded.</p>
+      <button id="sinClose" class="mt-2 inline-flex items-center justify-center px-5 py-3 rounded bg-white text-red-700 font-semibold shadow">
+        I repent 🙏
+      </button>
+    </div>
+  </div>
+</div>
+
   </main>
 
   <script>
