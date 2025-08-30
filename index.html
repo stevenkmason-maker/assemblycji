@@ -211,6 +211,19 @@
   </main>
 
   <script>
+const normalizeNick = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+function showSinOverlay() {
+  const ov = document.getElementById('sinOverlay');
+  ov.classList.remove('hidden');
+}
+function hideSinOverlay() {
+  const ov = document.getElementById('sinOverlay');
+  ov.classList.add('hidden');
+}
+document.getElementById('sinClose').onclick = hideSinOverlay;
+
+    
     // --- bracket logic (client) ---
     const byId = (id)=>document.getElementById(id);
     const selected = { qf1:null, qf2:null, qf3:null, qf4:null, sf1:null, sf2:null, final:null };
