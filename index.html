@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Assembly CJI Pick ’Em</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900">
+  <main class="max-w-3xl mx-auto p-6 space-y-6">
+    <header class="space-y-1">
+      <h1 class="text-3xl font-bold">Assembly CJI Pick ’Em</h1>
+      <p class="text-sm text-gray-600">
+        Make your picks. No login, no jerkmate. Entries lock at the posted deadline.
+      </p>
+      <div id="lockBanner" class="hidden rounded border border-amber-300 bg-amber-50 px-3 py-2 text-amber-800 text-sm"></div>
+    </header>
+
+    <!-- entry form -->
+    <section class="bg-white border rounded p-4 space-y-4">
+      <h2 class="font-semibold">Your Entry</h2>
+      <label class="block">
+        <span class="text-sm text-gray-700">Nickname</span>
+        <input id="nick" class="mt-1 w-full border rounded px-3 py-2" placeholder="e.g., Big Daddy" maxlength="32">
+      </label>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Round 1 (Quarterfinals) -->
+        <div>
+          <h3 class="font-semibold mb-2">Quarterfinals</h3>
+          <div class="space-y-3" id="qf">
+            <!-- QF1 -->
+            <div class="border rounded p-3">
+              <div class="text-xs text-gray-500 mb-1">QF1</div>
+              <div class="flex flex-col gap-2">
+                <button data-g="qf1" data-team="New Wave" class="pick">New Wave</button>
+                <button data-g="qf1" data-team="Americas Misfits" class="pick">Americas Misfits</button>
+              </div>
+            </div>
+            <!-- QF2 -->
+            <div class="border rounded p-3">
+              <div class="text-xs text-gray-500 mb-1">QF2</div>
+              <div class="flex flex-col gap-2">
+                <button data-g="qf2" data-team="Atos" class="pick">Atos</button>
+                <button data-g="qf2" data-team="Europe Misfits" class="pick">Europe Misfits</button>
+              </div>
+            </div>
+            <!-- QF3 -->
+            <div class="border rounded p-3">
+              <div class="text-xs text-gray-500 mb-1">QF3</div>
+              <div class="flex flex-col gap-2">
+                <button data-g="qf3" data-team="B-Team" class="pick">B-Team</button>
+                <button data-g="qf3" data-team="Daisy Fresh" class="pick">Daisy Fresh</button>
+              </div>
+            </div>
+            <!-- QF4 -->
+            <div class="border rounded p-3">
+              <div class="text-xs text-gray-500 mb-1">QF4</div>
+              <div class="flex flex-col gap-2">
+                <button data-g="qf4" data-team="Australasia Misfits" class="pick">Australasia Misfits</button>
+                <button data-g="qf4" data-team="10th Planet" class="pick">10th Planet</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Semifinals -->
+        <div>
+          <h3 class="font-semibold mb-2">Semifinals</h3>
+          <div class="space-y-3" id="sf">
+            <div class="border rounded p-3">
+              <div class="text-xs text-gray-500 mb-1">SF1 (Winner QF1 vs Winner QF2)</div>
+              <div class="flex flex-col gap-2" id="sf1"></div>
+            </div>
+            <div class="border rounded p-3">
+              <div class="text-xs text-gray-500 mb-1">SF2 (Winner QF3 vs Winner QF4)</div>
+              <div class="flex flex-col gap-2" id="sf2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Final -->
+        <div>
+          <h3 class="font-semibold mb-2">Final</h3>
+          <div class="space-y-3">
+            <div class="border rounded p-3">
+              <div class="text-xs text-gray-500 mb-1">Final (Winner SF1 vs Winner SF2)</div>
+              <div class="flex flex-col gap-2" id="final"></div>
+            </div>
+
+            <label class="block">
+              <span class="text-sm text-gray-700">Tiebreaker — total number of submissions in the bracket</span>
+              <input id="tiebreak" type="number" min="0" class="mt-1 w-full border rounded px-3 py-2" placeholder="e.g., 137">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="submitBtn" class="px-4 py-2 rounded bg-black text-white">Submit Picks</button>
+        <div id="msg" class="text-sm"></div>
+      </div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section class="bg-white border rounded p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold">Leaderboard</h2>
+        <button id="refreshLb" class="text-sm underline">Refresh</button>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-600">
+            <th class="py-1">#</th><th>Nickname</th><th>Points</th><th>Tiebreak diff</th>
+          </tr>
+        </thead>
+        <tbody id="lbBody"></tbody>
+      </table>
+      <p class="text-xs text-gray-500">Scoring: QF 5 pts, SF 10 pts, Final 20 pts.</p>
+    </section>
+
+    <!-- Admin panel (optional) -->
+    <section class="bg-white border rounded p-4 space-y-3">
+      <details>
+        <summary class="cursor-pointer font-semibold">Admin: Set correct results (requires ADMIN_KEY)</summary>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <h4 class="font-semibold mb-2">QF winners</h4>
+            <select id="r_qf1" class="border rounded px-2 py-1 w-full">
+              <option value="">—</option>
+              <option>New Wave</option><option>Americas Misfits</option>
+            </select>
+            <select id="r_qf2" class="border rounded px-2 py-1 w-full mt-2">
+              <option value="">—</option>
+              <option>Atos</option><option>Europe Misfits</option>
+            </select>
+            <select id="r_qf3" class="border rounded px-2 py-1 w-full mt-2">
+              <option value="">—</option>
+              <option>B-Team</option><option>Daisy Fresh</option>
+            </select>
+            <select id="r_qf4" class="border rounded px-2 py-1 w-full mt-2">
+              <option value="">—</option>
+              <option>Australasia Misfits</option><option>10th Planet</option>
+            </select>
+          </div>
+          <div>
+            <h4 class="font-semibold mb-2">SF winners</h4>
+            <input id="r_sf1" class="border rounded px-2 py-1 w-full" placeholder="Winner SF1">
+            <input id="r_sf2" class="border rounded px-2 py-1 w-full mt-2" placeholder="Winner SF2">
+          </div>
+          <div>
+            <h4 class="font-semibold mb-2">Final winner</h4>
+            <input id="r_final" class="border rounded px-2 py-1 w-full" placeholder="Champion">
+            <label class="block mt-3 text-sm">Admin Key
+              <input id="adminKey" class="border rounded px-2 py-1 w-full" placeholder="ADMIN_KEY">
+            </label>
+          </div>
+        </div>
+        <button id="setResults" class="mt-3 px-3 py-2 rounded bg-indigo-600 text-white">Save Results</button>
+        <button id="scoreAll" class="mt-3 px-3 py-2 rounded border">Recalculate Scores</button>
+        <div id="adminMsg" class="text-sm mt-2"></div>
+      </details>
+    </section>
+
+    <footer class="text-xs text-gray-500">
+      Built for quick, temporary use. No login; entries are public by nickname.
+    </footer>
+  </main>
+
+  <script>
+    const byId = (id)=>document.getElementById(id);
+    const selected = { qf1:null, qf2:null, qf3:null, qf4:null, sf1:null, sf2:null, final:null };
+
+    const styleButtons = () => {
+      document.querySelectorAll('.pick').forEach(b=>{
+        const g = b.dataset.g, t=b.dataset.team;
+        b.className = 'pick px-3 py-2 rounded border text-left';
+        if (selected[g]===t) b.className+=' bg-black text-white';
+      });
+    };
+
+    const mountSf = () => {
+      const sf1Div = byId('sf1'), sf2Div = byId('sf2'), finalDiv = byId('final');
+      sf1Div.innerHTML=''; sf2Div.innerHTML=''; finalDiv.innerHTML='';
+      if (selected.qf1 && selected.qf2){
+        [selected.qf1, selected.qf2].forEach(t=>{
+          const b=document.createElement('button');
+          b.textContent=t; b.className='pick px-3 py-2 rounded border text-left';
+          b.dataset.g='sf1'; b.dataset.team=t;
+          sf1Div.appendChild(b);
+        });
+      }
+      if (selected.qf3 && selected.qf4){
+        [selected.qf3, selected.qf4].forEach(t=>{
+          const b=document.createElement('button');
+          b.textContent=t; b.className='pick px-3 py-2 rounded border text-left';
+          b.dataset.g='sf2'; b.dataset.team=t;
+          sf2Div.appendChild(b);
+        });
+      }
+      if (selected.sf1 && selected.sf2){
+        [selected.sf1, selected.sf2].forEach(t=>{
+          const b=document.createElement('button');
+          b.textContent=t; b.className='pick px-3 py-2 rounded border text-left';
+          b.dataset.g='final'; b.dataset.team=t;
+          finalDiv.appendChild(b);
+        });
+      }
+      styleButtons();
+    };
+
+    document.body.addEventListener('click', (e)=>{
+      if(!e.target.classList.contains('pick')) return;
+      const g=e.target.dataset.g, t=e.target.dataset.team;
+      selected[g]=t;
+      if (g==='qf1'||g==='qf2'||g==='qf3'||g==='qf4'){ selected.sf1=null; selected.sf2=null; selected.final=null; }
+      if (g==='sf1'||g==='sf2'){ selected.final=null; }
+      mountSf();
+    });
+
+    async function fetchLockInfo(){
+      const r = await fetch('/api/status');
+      const j = await r.json();
+      const lockTs = new Date(j.lock_iso);
+      const now = new Date();
+      const banner = byId('lockBanner');
+      banner.classList.remove('hidden');
+      if (now >= lockTs){
+        banner.textContent = 'Entries are locked.';
+        byId('submitBtn').disabled = true;
+        byId('submitBtn').classList.add('opacity-50','cursor-not-allowed');
+      }else{
+        banner.textContent = 'Entries lock at ' + lockTs.toLocaleString();
+      }
+    }
+
+    byId('submitBtn').onclick = async ()=>{
+      const nick = byId('nick').value.trim();
+      const tiebreak = Number(byId('tiebreak').value);
+      const msg = byId('msg');
+      if(!nick){ msg.textContent='Enter a nickname.'; return; }
+      const required = ['qf1','qf2','qf3','qf4','sf1','sf2','final'];
+      for (const k of required){ if(!selected[k]){ msg.textContent='Please complete all picks.'; return; } }
+      if(!Number.isFinite(tiebreak)||tiebreak<0){ msg.textContent='Enter a valid tiebreaker number.'; return; }
+      msg.textContent='Submitting…';
+      const r = await fetch('/api/submit', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ nickname:nick, picks:selected, tiebreak })
+      });
+      const j = await r.json();
+      msg.textContent = j.ok ? 'Submitted! Good luck.' : ('Error: ' + (j.error||'unknown'));
+      loadLeaderboard();
+    };
+
+    async function loadLeaderboard(){
+      const r = await fetch('/api/leaderboard');
+      const { entries } = await r.json();
+      const tbody = byId('lbBody');
+      tbody.innerHTML='';
+      entries.forEach((e,i)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td class="py-1">${i+1}</td><td>${e.nickname}</td><td>${e.points}</td><td>${e.tiebreak_diff}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    byId('refreshLb').onclick = loadLeaderboard;
+
+    byId('setResults').onclick = async ()=>{
+      const payload = {
+        results:{
+          qf1: byId('r_qf1').value || null,
+          qf2: byId('r_qf2').value || null,
+          qf3: byId('r_qf3').value || null,
+          qf4: byId('r_qf4').value || null,
+          sf1: byId('r_sf1').value || null,
+          sf2: byId('r_sf2').value || null,
+          final: byId('r_final').value || null
+        }
+      };
+      const r = await fetch('/api/set-results', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-admin-key': byId('adminKey').value.trim()
+        },
+        body: JSON.stringify(payload)
+      });
+      const j = await r.json();
+      byId('adminMsg').textContent = j.ok ? 'Results saved.' : ('Error: ' + (j.error||'unknown'));
+      loadLeaderboard();
+    };
+
+    byId('scoreAll').onclick = async ()=>{
+      const r = await fetch('/api/recalc', { method:'POST', headers:{'x-admin-key': byId('adminKey').value.trim()}});
+      const j = await r.json();
+      byId('adminMsg').textContent = j.ok ? 'Scores recalculated.' : ('Error: ' + (j.error||'unknown'));
+      loadLeaderboard();
+    };
+
+    mountSf(); fetchLockInfo(); loadLeaderboard();
+  </script>
+</body>
+</html>
