@@ -25,7 +25,7 @@
       </label>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Round 1 (Quarterfinals) -->
+        <!-- Quarterfinals -->
         <div>
           <h3 class="font-semibold mb-2">Quarterfinals</h3>
           <div class="space-y-3" id="qf">
@@ -149,7 +149,7 @@
       </div>
     </section>
 
-    <!-- Admin panel (optional) -->
+    <!-- Admin panel -->
     <section class="bg-white border rounded p-4 space-y-3">
       <details>
         <summary class="cursor-pointer font-semibold">Admin: Set correct results (requires ADMIN_KEY)</summary>
@@ -195,38 +195,30 @@
     <footer class="text-xs text-gray-500">
       Built for quick, temporary use. No login; entries are public by nickname.
     </footer>
-    <!-- Massive SIN overlay -->
-<div id="sinOverlay" class="hidden fixed inset-0 z-50 bg-red-900/90 text-white">
-  <div class="h-full w-full flex items-center justify-center p-6">
-    <div class="max-w-xl text-center space-y-4 animate-pulse">
-      <div class="text-5xl md:text-6xl font-extrabold tracking-wide">GAMBLING IS A SIN</div>
-      <p class="text-lg md:text-xl opacity-90">Nice try, “Pastor Nic.” Your entry was not recorded.</p>
-      <button id="sinClose" class="mt-2 inline-flex items-center justify-center px-5 py-3 rounded bg-white text-red-700 font-semibold shadow">
-        I repent 🙏
-      </button>
-    </div>
-  </div>
-</div>
-
   </main>
 
+  <!-- Massive SIN overlay -->
+  <div id="sinOverlay" class="hidden fixed inset-0 z-50 bg-red-900/90 text-white">
+    <div class="h-full w-full flex items-center justify-center p-6">
+      <div class="max-w-xl text-center space-y-4 animate-pulse">
+        <div class="text-5xl md:text-6xl font-extrabold tracking-wide">GAMBLING IS A SIN</div>
+        <p class="text-lg md:text-xl opacity-90">Nice try, “Pastor Nic.” Your entry was not recorded.</p>
+        <button id="sinClose" class="mt-2 inline-flex items-center justify-center px-5 py-3 rounded bg-white text-red-700 font-semibold shadow">
+          I repent 🙏
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-const normalizeNick = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
-
-function showSinOverlay() {
-  const ov = document.getElementById('sinOverlay');
-  ov.classList.remove('hidden');
-}
-function hideSinOverlay() {
-  const ov = document.getElementById('sinOverlay');
-  ov.classList.add('hidden');
-}
-document.getElementById('sinClose').onclick = hideSinOverlay;
-
-    
-    // --- bracket logic (client) ---
+    // ---------- utilities & state ----------
     const byId = (id)=>document.getElementById(id);
     const selected = { qf1:null, qf2:null, qf3:null, qf4:null, sf1:null, sf2:null, final:null };
+    const normalizeNick = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+    function showSinOverlay(){ byId('sinOverlay').classList.remove('hidden'); }
+    function hideSinOverlay(){ byId('sinOverlay').classList.add('hidden'); }
+    byId('sinClose').onclick = hideSinOverlay;
 
     const styleButtons = () => {
       document.querySelectorAll('.pick').forEach(b=>{
@@ -275,7 +267,7 @@ document.getElementById('sinClose').onclick = hideSinOverlay;
       mountSf();
     });
 
-    // lock banner
+    // ---------- lock banner ----------
     async function fetchLockInfo(){
       const r = await fetch('/api/status');
       const j = await r.json();
@@ -292,15 +284,24 @@ document.getElementById('sinClose').onclick = hideSinOverlay;
       }
     }
 
-    // submit
+    // ---------- submit ----------
     byId('submitBtn').onclick = async ()=>{
       const nick = byId('nick').value.trim();
       const tiebreak = Number(byId('tiebreak').value);
       const msg = byId('msg');
+
+      // client-side Pastor Nic gag (also enforced on server)
+      if (normalizeNick(nick) === 'pastor nic') {
+        showSinOverlay();
+        msg.textContent = '';
+        return;
+      }
+
       if(!nick){ msg.textContent='Enter a nickname.'; return; }
       const required = ['qf1','qf2','qf3','qf4','sf1','sf2','final'];
       for (const k of required){ if(!selected[k]){ msg.textContent='Please complete all picks.'; return; } }
       if(!Number.isFinite(tiebreak)||tiebreak<0){ msg.textContent='Enter a valid tiebreaker number.'; return; }
+
       msg.textContent='Submitting…';
       try {
         const r = await fetch('/api/submit', {
@@ -308,10 +309,17 @@ document.getElementById('sinClose').onclick = hideSinOverlay;
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ nickname:nick, picks:selected, tiebreak })
         });
-        const j = await r.json().catch(async ()=>{
+        const data = await r.json().catch(async ()=>{
           const t = await r.text(); throw new Error(`(${r.status}) ${t.slice(0,200)}`);
         });
-        if (!r.ok || !j.ok) throw new Error(j.error || JSON.stringify(j));
+
+        if (data && data.code === 'GAMBLING_SIN') {
+          showSinOverlay();
+          msg.textContent = '';
+          return;
+        }
+
+        if (!r.ok || !data.ok) throw new Error(data?.error || `(${r.status})`);
         msg.textContent = 'Submitted! Good luck.';
         loadLeaderboard();
       } catch (e) {
@@ -319,7 +327,7 @@ document.getElementById('sinClose').onclick = hideSinOverlay;
       }
     };
 
-    // leaderboard
+    // ---------- leaderboard ----------
     async function loadLeaderboard(){
       const r = await fetch('/api/leaderboard');
       const { entries } = await r.json();
@@ -333,7 +341,7 @@ document.getElementById('sinClose').onclick = hideSinOverlay;
     }
     byId('refreshLb').onclick = loadLeaderboard;
 
-    // admin helpers
+    // ---------- admin ----------
     byId('setResults').onclick = async ()=>{
       const payload = {
         results:{
@@ -366,7 +374,7 @@ document.getElementById('sinClose').onclick = hideSinOverlay;
       loadLeaderboard();
     };
 
-    // ---- STATS UI ----
+    // ---------- stats ----------
     async function loadStats(){
       const elSummary = document.getElementById('statsSummary');
       const elAvg = document.getElementById('avgBracket');
@@ -380,7 +388,6 @@ document.getElementById('sinClose').onclick = hideSinOverlay;
         const s = await r.json();
 
         const anyResults = s.results && Object.values(s.results).some(Boolean);
-
         elSummary.innerHTML = `
           <div>Total entries: <strong>${s.total}</strong></div>
           <div class="text-xs text-gray-500">Any results set: ${anyResults ? 'yes' : 'no'}</div>
@@ -442,7 +449,7 @@ document.getElementById('sinClose').onclick = hideSinOverlay;
     }
     document.getElementById('loadStats').onclick = loadStats;
 
-    // init
+    // ---------- init ----------
     mountSf(); fetchLockInfo(); loadLeaderboard();
   </script>
 </body>
