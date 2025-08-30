@@ -1,3 +1,4 @@
+// functions/api/submit.js
 import { validBracket, getResults, scorePicks } from "../_utils";
 
 export const onRequestPost = async ({ request, env }) => {
@@ -12,7 +13,15 @@ export const onRequestPost = async ({ request, env }) => {
     return json({ ok:false, error:"Invalid payload." }, 400);
   }
 
-  const nickname = body.nickname.trim().slice(0, 32);
+  // normalize nickname and block "pastor nic"
+  const rawNick = body.nickname;
+  const nickname = rawNick.trim().slice(0, 32);
+  const norm = nickname.replace(/\s+/g, " ").trim().toLowerCase();
+  if (norm === "pastor nic") {
+    // funny hard-stop: do NOT record
+    return json({ ok:false, code:"GAMBLING_SIN", error:"GAMBLING IS A SIN" }, 400);
+  }
+
   const entry = { nickname, picks: body.picks, tiebreak: Math.floor(body.tiebreak), ts: Date.now() };
 
   const id = crypto.randomUUID();
